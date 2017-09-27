@@ -49,6 +49,15 @@ for sent in sents:
 
 with open("Output_URL.txt", "w") as text_file:
     text_file.write(temp_str)
+    
+   
+
+'''
+scraper still needs functionality for tokenizing sentences and storing each sentence into files.
+scraper also needs to be able to work with multiple urls, not just one. 
+'''
+    
+    
 '''
 for file in os.listdir(path):
     with open(path + '/' + file, 'r') as f:
