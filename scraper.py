@@ -45,3 +45,6 @@ print(tokens)
 sents = sent_tokenize(temp_str)
 for sent in sents:
     print(sent)
+    
+with open("Output_URL.txt", "w") as text_file:
+    text_file.write(temp_str)
