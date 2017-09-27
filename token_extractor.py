@@ -23,5 +23,8 @@ def token_extract(text):
 text = "i hate you hate"
 token_extract(text)
 
+'''
+Need to add functionality to print top 25-40 terms.
+'''
 
 
