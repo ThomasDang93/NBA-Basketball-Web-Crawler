@@ -4,26 +4,31 @@
 # Alan Stock
 
 import glob
-import string
+import operator
 import nltk
 import os
 import re
 import requests
+import string
 import urllib
 
 from bs4 import BeautifulSoup
+from collections import Counter
 from queue import Queue
 from nltk.corpus import stopwords
 
-REQUIRED_URLS = 5
+REQUIRED_URLS = 15
 START_URL = "http://www.nba.com/cavaliers/"
 IGNORED_URL_STRINGS = ['facebook', 'google', 'twitter', 'linkedin', 'video', 'insider/story', 'wade']
 TOP_TERMS_PER_PAGE = 10
+TOP_TERMS_IN_DICT = 40
 
 '''
 Write a function to loop through your urls and and scrape all text off each page. 
 Store each page’s text in its own file. 
 '''
+
+
 def scrape(url):
     req = urllib.request.Request(url, headers={'User-Agent': "Magic Browser"})
     con = urllib.request.urlopen(req)
@@ -32,7 +37,7 @@ def scrape(url):
     soup = BeautifulSoup(page, "lxml")
     data = soup.findAll(text=True)
     result = filter(visible, data)
-    scrape_str = ' '.join(list(result)).encode('utf-8')
+    scrape_str = ' '.join(list(result)).encode('ascii', 'replace')
 
     file_name = '{}.txt'.format(url.replace("/", "-")[-30:])
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -49,6 +54,8 @@ def scrape(url):
 '''
 function to determine if an element is visible
 '''
+
+
 def visible(element):
     if element.parent.name in ['style', 'script', '[document]', 'head', 'title', 'meta']:
         return False
@@ -63,6 +70,8 @@ Extract sentences with NLTK’s sentence tokenizer. Write the sentences for each
 That is, if you have 15 files in, you have 15 files out. 
 You might need to clean up the cleaned up files manually to delete irrelevant material. 
 '''
+
+
 def cleanup(rawfile):
     cleanfile = 'clean_{}'.format(rawfile[4:38])
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -76,7 +85,7 @@ def cleanup(rawfile):
         with open(path, 'w') as output:
             text = f.read()
 
-            mapping = [('\\n', ''), ('\\t', ''), ('\\s\\s+', ' ')]
+            mapping = [('\\n', ''), ('\\t', ''), ('\\s\\s+', ' '), ("\\'","'")]
             for k, v in mapping:
                 text = text.replace(k, v)
             sentences = nltk.sent_tokenize(text)
@@ -90,6 +99,8 @@ such as term frequency. First, it’s a good idea to lower-case everything, remo
 Then build a vocabulary of unique terms. Create a dictionary of unique terms where the key is the token and 
 the value is the count across all documents.  Print the top 25-40 terms.
 '''
+
+
 def extract_terms(text):
     translate_table = dict((ord(char), None) for char in string.punctuation)
     text = text.translate(translate_table)
@@ -98,7 +109,16 @@ def extract_terms(text):
     tokens = [t for t in tokens if t not in stop_words]
     fdist = nltk.FreqDist(tokens)
 
-    return fdist.most_common(TOP_TERMS_PER_PAGE)
+    return set(fdist.most_common(TOP_TERMS_PER_PAGE))
+
+    # for term in fdist.most_common(TOP_TERMS_PER_PAGE):
+    #    if term in top_terms:
+    #        top_terms[term] += 1
+    #    else:
+    #        top_terms[term] = 1
+
+    # return top_terms
+
 
 def main():
     q = Queue()
@@ -135,23 +155,17 @@ def main():
     for filename in files:
         cleanup(filename)
 
-    vocab = {}
+    vocab = Counter({})
     search_str = os.path.join('clean', '*.txt')
     files = glob.glob(search_str)
     for filename in files:
         with open(filename, 'r') as f:
             text = f.read()
             top_terms = extract_terms(text)
+            page = Counter(dict(top_terms))
+            vocab = vocab + page
 
-            for term in top_terms:
-                if term in vocab:
-                    vocab[term] += 1
-                else:
-                    vocab[term] = 1
-
-    for key in sorted(vocab)[:40]:
-        print(key, vocab[key])
-
+    print(sorted(vocab, key=vocab.get, reverse=True)[:TOP_TERMS_IN_DICT])
 
 if __name__ == "__main__":
     main()
