@@ -4,6 +4,7 @@
 # Alan Stock
 
 import glob
+import string
 import nltk
 import os
 import re
@@ -17,7 +18,7 @@ from nltk.corpus import stopwords
 REQUIRED_URLS = 5
 START_URL = "http://www.nba.com/cavaliers/"
 IGNORED_URL_STRINGS = ['facebook', 'google', 'twitter', 'linkedin', 'video', 'insider/story', 'wade']
-TOP_TERMS_LIMIT = 40
+TOP_TERMS_PER_PAGE = 10
 
 '''
 Write a function to loop through your urls and and scrape all text off each page. 
@@ -69,13 +70,13 @@ def cleanup(rawfile):
     try:
         os.makedirs(dest_dir)
     except OSError:
-        pass  # already exists
+        pass
     path = os.path.join(dest_dir, cleanfile)
     with open(rawfile) as f:
         with open(path, 'w') as output:
             text = f.read()
 
-            mapping = [('\n', ''), ('\t', ''), ('\s\s+', ' ')]
+            mapping = [('\\n', ''), ('\\t', ''), ('\\s\\s+', ' ')]
             for k, v in mapping:
                 text = text.replace(k, v)
             sentences = nltk.sent_tokenize(text)
@@ -89,26 +90,20 @@ such as term frequency. First, it’s a good idea to lower-case everything, remo
 Then build a vocabulary of unique terms. Create a dictionary of unique terms where the key is the token and 
 the value is the count across all documents.  Print the top 25-40 terms.
 '''
-def extract_tokens(text):
-    stop_words = set(stopwords.words('english'))
+def extract_terms(text):
+    translate_table = dict((ord(char), None) for char in string.punctuation)
+    text = text.translate(translate_table)
     tokens = nltk.word_tokenize(text.lower())
-    tokens = [t for t in set(tokens) if t not in stop_words]
-    unique_tokens = set(tokens)
-    fdist = nltk.FreqDist(unique_tokens)
+    stop_words = set(stopwords.words('english'))
+    tokens = [t for t in tokens if t not in stop_words]
+    fdist = nltk.FreqDist(tokens)
 
-    vocab = {}  # dictionary
-    for token in tokens:
-        if token in vocab:
-            vocab[token] += 1
-        else:
-            vocab[token] = 1
-
-    return fdist.most_common(TOP_TERMS_LIMIT), vocab
+    return fdist.most_common(TOP_TERMS_PER_PAGE)
 
 def main():
     q = Queue()
     relevant_urls = set()
-    visited_urls = set()
+    found__urls = set()
 
     q.put(START_URL)
     while len(relevant_urls) < REQUIRED_URLS:
@@ -120,9 +115,9 @@ def main():
         for link in soup.find_all('a'):
             link_str = str(link.get('href'))
 
-            if link_str.startswith('http') and link_str not in visited_urls:
+            if link_str.startswith('http') and link_str not in found__urls:
                 q.put(link_str)
-                visited_urls.add(link_str)
+                found__urls.add(link_str)
 
                 if ('lebron' in link_str and
                         link_str not in relevant_urls and
@@ -140,12 +135,22 @@ def main():
     for filename in files:
         cleanup(filename)
 
+    vocab = {}
     search_str = os.path.join('clean', '*.txt')
     files = glob.glob(search_str)
     for filename in files:
         with open(filename, 'r') as f:
             text = f.read()
-            print(extract_tokens(text))
+            top_terms = extract_terms(text)
+
+            for term in top_terms:
+                if term in vocab:
+                    vocab[term] += 1
+                else:
+                    vocab[term] = 1
+
+    for key in sorted(vocab)[:40]:
+        print(key, vocab[key])
 
 
 if __name__ == "__main__":
