@@ -1,7 +1,9 @@
-# CS4301.001 - Project
+"""
+CS4301.001 - Project
 # Ricardo Alanis
 # Thomas Dang
 # Alan Stock
+"""
 
 import glob
 import operator
@@ -19,21 +21,18 @@ from nltk.corpus import stopwords
 
 REQUIRED_URLS = 15
 START_URL = "http://www.nba.com/cavaliers/"
-IGNORED_URL_STRINGS = ['facebook', 'google', 'twitter', 'linkedin', 'video', 'insider/story', 'wade']
+IGNORED_URL_STRINGS = ['facebook', 'google', 'twitter', 'linkedin', 'video', 'insider/story']
 TOP_TERMS_PER_PAGE = 10
 TOP_TERMS_IN_DICT = 40
 
-'''
-Write a function to loop through your urls and and scrape all text off each page. 
-Store each page’s text in its own file. 
-'''
-
 
 def scrape(url):
+    """Write a function to loop through your urls and and scrape all text off each page.
+    Store each page’s text in its own file.
+    """
     req = urllib.request.Request(url, headers={'User-Agent': "Magic Browser"})
     con = urllib.request.urlopen(req)
-    page = con.read().decode('utf-8')
-
+    page = con.read()
     soup = BeautifulSoup(page, "lxml")
     data = soup.findAll(text=True)
     result = filter(visible, data)
@@ -51,12 +50,9 @@ def scrape(url):
         output.write(str(scrape_str))
 
 
-'''
-function to determine if an element is visible
-'''
-
-
 def visible(element):
+    """function to determine if an element is visible
+    """
     if element.parent.name in ['style', 'script', '[document]', 'head', 'title', 'meta']:
         return False
     elif re.match('<!--.*-->', str(element.encode('utf-8'))):
@@ -64,15 +60,11 @@ def visible(element):
     return True
 
 
-'''
-Write a function to clean up the text. You might need to delete newlines and tabs. 
-Extract sentences with NLTK’s sentence tokenizer. Write the sentences for each file to a new file. 
-That is, if you have 15 files in, you have 15 files out. 
-You might need to clean up the cleaned up files manually to delete irrelevant material. 
-'''
-
-
 def cleanup(rawfile):
+    """Write a function to clean up the text. You might need to delete newlines and tabs.
+    Extract sentences with NLTK’s sentence tokenizer. Write the sentences for each file to a new file.
+    That is, if you have 15 files in, you have 15 files out.
+    You might need to clean up the cleaned up files manually to delete irrelevant material."""
     cleanfile = 'clean_{}'.format(rawfile[4:38])
     script_dir = os.path.dirname(os.path.abspath(__file__))
     dest_dir = os.path.join(script_dir, 'clean')
@@ -93,15 +85,11 @@ def cleanup(rawfile):
                 output.write(s)
 
 
-'''
-Write a function to extract at least 10 important terms from the pages using an importance measure 
-such as term frequency. First, it’s a good idea to lower-case everything, remove stopwords and punctuation. 
-Then build a vocabulary of unique terms. Create a dictionary of unique terms where the key is the token and 
-the value is the count across all documents.  Print the top 25-40 terms.
-'''
-
-
 def extract_terms(text):
+    """Write a function to extract at least 10 important terms from the pages using an importance measure
+    such as term frequency. First, it’s a good idea to lower-case everything, remove stopwords and punctuation.
+    Then build a vocabulary of unique terms. Create a dictionary of unique terms where the key is the token and
+    the value is the count across all documents.  Print the top 25-40 terms."""
     translate_table = dict((ord(char), None) for char in string.punctuation)
     text = text.translate(translate_table)
     tokens = nltk.word_tokenize(text.lower())
@@ -110,14 +98,6 @@ def extract_terms(text):
     fdist = nltk.FreqDist(tokens)
 
     return set(fdist.most_common(TOP_TERMS_PER_PAGE))
-
-    # for term in fdist.most_common(TOP_TERMS_PER_PAGE):
-    #    if term in top_terms:
-    #        top_terms[term] += 1
-    #    else:
-    #        top_terms[term] = 1
-
-    # return top_terms
 
 
 def main():
